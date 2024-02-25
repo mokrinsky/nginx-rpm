@@ -1,0 +1,38 @@
+stages:
+  - build
+  - publish
+
+image:
+  name: library/rockylinux:8
+
+before_script:
+  - VERSION=`grep "%define base_version" spec/nginx.spec | awk '{print $3}'`
+  - RELEASE=`grep "%define base_release" spec/nginx.spec | awk '{print $3}' | sed 's/%.*$//'`
+
+build:
+  stage: build
+  script:
+    - export https_proxy=http://$PROXY http_proxy=http://$PROXY HTTPS_PROXY=http://$PROXY HTTP_PROXY=http://$PROXY
+    - dnf -y install rpm-build rpmdevtools dnf-plugins-core
+    - rpmdev-setuptree
+    - cp sources/* ~/rpmbuild/SOURCES
+    - cp spec/nginx.spec ~/rpmbuild/SPECS
+    - spectool -g -R ~/rpmbuild/SPECS/nginx.spec
+    - dnf -y builddep ~/rpmbuild/SPECS/nginx.spec
+    - rpmbuild -ba ~/rpmbuild/SPECS/nginx.spec
+    - mkdir rpms
+    - cp ~/rpmbuild/RPMS/x86_64/nginx-$VERSION-$RELEASE.el8.ml.x86_64.rpm rpms/
+  artifacts:
+    untracked: true
+    paths:
+      - rpms/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+publish:
+  stage: publish
+  script:
+    - 'curl -v -H "Authorization: Basic $DOCKER_AUTH_ACCOUNT" --upload-file rpms/nginx-$VERSION-$RELEASE.el8.ml.x86_64.rpm $NEXUS_3PP_URI'
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "master"'
