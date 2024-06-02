@@ -3,9 +3,9 @@
 %define nginx_user nginx
 %define nginx_group nginx
 %define nginx_loggroup adm
-%define base_version 1.25.4
+%define base_version 1.27.0
 %define vts_version 0.2.2
-%define ssl_version 3.2.1
+%define ssl_version 3.3.0
 %define base_name nginx
 
 BuildRequires: systemd
@@ -41,7 +41,7 @@ BuildRequires: make
 
 # end of distribution specific definitions
 
-%define base_release 2%{?dist}.ml
+%define base_release 1%{?dist}.ml
 
 %define bdir %{_builddir}/%{name}-%{base_version}
 
